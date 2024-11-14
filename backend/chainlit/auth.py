@@ -8,14 +8,17 @@ from fastapi.security import OAuth2PasswordBearer
 
 from chainlit.config import config
 from chainlit.data import get_data_layer
+from chainlit.logger import logger
 from chainlit.oauth_providers import get_configured_oauth_providers
 from chainlit.user import User
 
 reuseable_oauth = OAuth2PasswordBearer(tokenUrl="/login", auto_error=False)
 
 
-def get_jwt_secret():
-    return os.environ.get("CHAINLIT_AUTH_SECRET")
+def get_jwt_secret() -> str:
+    secret = os.environ.get("CHAINLIT_AUTH_SECRET")
+    assert secret
+    return secret
 
 
 def ensure_jwt_secret():
@@ -80,7 +83,9 @@ async def authenticate_user(token: str = Depends(reuseable_oauth)):
             persisted_user = await data_layer.get_user(user.identifier)
             if persisted_user is None:
                 persisted_user = await data_layer.create_user(user)
-        except Exception:
+                assert persisted_user
+        except Exception as e:
+            logger.exception(e)
             return user
 
         if user and user.display_name:
