@@ -369,16 +369,79 @@ async def auth(request: Request):
     return get_configuration()
 
 
-async def _maybe_create_user(user: User):
-    """
-    If a data layer is defined, attempt to persist user.
-    Catches and logs exceptions during user creation.
-    """
+def _get_response_dict(access_token: str) -> dict:
+    """Get the response dictionary for the auth response."""
+    if config.project.cookie_auth:
+        return {"successs": True}
+
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+    }
+
+
+def _get_auth_response(access_token: str, redirect_to_callback: bool) -> Response:
+    """Get the redirect params for the OAuth callback."""
+
+    response_dict = _get_response_dict(access_token)
+
+    if redirect_to_callback:
+        root_path = os.environ.get("CHAINLIT_ROOT_PATH", "")
+        redirect_url = (
+            f"{root_path}/login/callback?{urllib.parse.urlencode(response_dict)}"
+        )
+
+        return RedirectResponse(
+            # FIXME: redirect to the right frontend base url to improve the dev environment
+            url=redirect_url,
+            status_code=302,
+        )
+
+    return JSONResponse(response_dict)
+
+
+def _get_oauth_redirect_error(error: str) -> Response:
+    """Get the redirect response for an OAuth error."""
+    params = urllib.parse.urlencode(
+        {
+            "error": error,
+        }
+    )
+    response = RedirectResponse(
+        # FIXME: redirect to the right frontend base url to improve the dev environment
+        url=f"/login?{params}",  # Shouldn't there be {root_path} here?
+    )
+    return response
+
+
+async def _authenticate_user(
+    user: Optional[User], redirect_to_callback: bool = False
+) -> Response:
+    """Authenticate a user and return the response."""
+
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="credentialssignin",
+        )
+
+    # If a data layer is defined, attempt to persist user.
     if data_layer := get_data_layer():
         try:
             await data_layer.create_user(user)
         except Exception as e:
+            # Catch and log exceptions during user creation.
+            # TODO: Make this catch only specific errors and allow others to propagate.
             logger.error(f"Error creating user: {e}")
+
+    access_token = create_jwt(user)
+
+    response = _get_auth_response(access_token, redirect_to_callback)
+
+    if config.project.cookie_auth:
+        set_auth_cookie(response, access_token)
+
+    return response
 
 
 @router.post("/login")
@@ -395,24 +458,7 @@ async def login(response: Response, form_data: OAuth2PasswordRequestForm = Depen
         form_data.username, form_data.password
     )
 
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="credentialssignin",
-        )
-
-    access_token = create_jwt(user)
-
-    await _maybe_create_user(user)
-
-    if config.project.cookie_auth:
-        set_auth_cookie(response, access_token)
-        return {"success": True}
-
-    return {
-        "access_token": access_token,
-        "token_type": "bearer",
-    }
+    return await _authenticate_user(user)
 
 
 @router.post("/logout")
@@ -428,7 +474,7 @@ async def logout(request: Request, response: Response):
 
 
 @router.post("/auth/header")
-async def header_auth(request: Request, response: Response):
+async def header_auth(request: Request):
     """Login a user using the header_auth_callback."""
     if not config.code.header_auth_callback:
         raise HTTPException(
@@ -438,24 +484,7 @@ async def header_auth(request: Request, response: Response):
 
     user = await config.code.header_auth_callback(request.headers)
 
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Unauthorized",
-        )
-
-    access_token = create_jwt(user)
-
-    await _maybe_create_user(user)
-
-    if config.project.cookie_auth:
-        set_auth_cookie(response, access_token)
-        return {"success": True}
-
-    return {
-        "access_token": access_token,
-        "token_type": "bearer",
-    }
+    return await _authenticate_user(user)
 
 
 @router.get("/auth/oauth/{provider_id}")
@@ -490,48 +519,6 @@ async def oauth_login(provider_id: str, request: Request):
 
     set_oauth_state_cookie(response, random)
 
-    return response
-
-
-def _get_oauth_redirect_params(access_token: str) -> Dict[str, Any]:
-    """Get the redirect params for the OAuth callback."""
-    if config.project.cookie_auth:
-        return {"successs": True}
-
-    return {
-        "access_token": access_token,
-        "token_type": "bearer",
-    }
-
-
-def _get_oauth_redirect_response(access_token: str) -> Response:
-    """Get the redirect response for the OAuth callback."""
-    redirect_params = _get_oauth_redirect_params(access_token)
-
-    root_path = os.environ.get("CHAINLIT_ROOT_PATH", "")
-
-    response = RedirectResponse(
-        # FIXME: redirect to the right frontend base url to improve the dev environment
-        url=f"{root_path}/login/callback?{urllib.parse.urlencode(redirect_params)}",
-        status_code=302,
-    )
-
-    if config.project.cookie_auth:
-        set_auth_cookie(response, access_token)
-
-    return response
-
-
-def _get_oauth_redirect_error(error: str) -> Response:
-    params = urllib.parse.urlencode(
-        {
-            "error": error,
-        }
-    )
-    response = RedirectResponse(
-        # FIXME: redirect to the right frontend base url to improve the dev environment
-        url=f"/login?{params}",  # Shouldn't there be {root_path} here?
-    )
     return response
 
 
@@ -586,17 +573,7 @@ async def oauth_callback(
         provider_id, token, raw_user_data, default_user
     )
 
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Unauthorized",
-        )
-
-    access_token = create_jwt(user)
-
-    await _maybe_create_user(user)
-
-    response = _get_oauth_redirect_response(access_token)
+    response = await _authenticate_user(user, redirect_to_callback=True)
 
     clear_oauth_state_cookie(response)
 
@@ -645,17 +622,7 @@ async def oauth_azure_hf_callback(
         provider_id, token, raw_user_data, default_user, id_token
     )
 
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Unauthorized",
-        )
-
-    access_token = create_jwt(user)
-
-    await _maybe_create_user(user)
-
-    response = _get_oauth_redirect_response(access_token)
+    response = await _authenticate_user(user, redirect_to_callback=True)
 
     clear_oauth_state_cookie(response)
 
