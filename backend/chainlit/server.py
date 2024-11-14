@@ -369,6 +369,18 @@ async def auth(request: Request):
     return get_configuration()
 
 
+async def _maybe_create_user(user: User):
+    """
+    If a data layer is defined, attempt to persist user.
+    Catches and logs exceptions during user creation.
+    """
+    if data_layer := get_data_layer():
+        try:
+            await data_layer.create_user(user)
+        except Exception as e:
+            logger.error(f"Error creating user: {e}")
+
+
 @router.post("/login")
 async def login(response: Response, form_data: OAuth2PasswordRequestForm = Depends()):
     """
@@ -390,11 +402,8 @@ async def login(response: Response, form_data: OAuth2PasswordRequestForm = Depen
         )
 
     access_token = create_jwt(user)
-    if data_layer := get_data_layer():
-        try:
-            await data_layer.create_user(user)
-        except Exception as e:
-            logger.error(f"Error creating user: {e}")
+
+    await _maybe_create_user(user)
 
     if config.project.cookie_auth:
         set_auth_cookie(response, access_token)
@@ -436,11 +445,8 @@ async def header_auth(request: Request, response: Response):
         )
 
     access_token = create_jwt(user)
-    if data_layer := get_data_layer():
-        try:
-            await data_layer.create_user(user)
-        except Exception as e:
-            logger.error(f"Error creating user: {e}")
+
+    await _maybe_create_user(user)
 
     if config.project.cookie_auth:
         set_auth_cookie(response, access_token)
@@ -588,11 +594,7 @@ async def oauth_callback(
 
     access_token = create_jwt(user)
 
-    if data_layer := get_data_layer():
-        try:
-            await data_layer.create_user(user)
-        except Exception as e:
-            logger.error(f"Error creating user: {e}")
+    await _maybe_create_user(user)
 
     response = _get_oauth_redirect_response(access_token)
 
@@ -651,11 +653,7 @@ async def oauth_azure_hf_callback(
 
     access_token = create_jwt(user)
 
-    if data_layer := get_data_layer():
-        try:
-            await data_layer.create_user(user)
-        except Exception as e:
-            logger.error(f"Error creating user: {e}")
+    await _maybe_create_user(user)
 
     response = _get_oauth_redirect_response(access_token)
 
