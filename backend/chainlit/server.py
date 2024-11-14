@@ -500,7 +500,7 @@ async def oauth_login(provider_id: str, request: Request):
     return response
 
 
-def _get_oauth_redirect_params(access_token: str) -> Dict[str, str | bool]:
+def _get_oauth_redirect_params(access_token: str) -> Dict[str, Any]:
     """Get the redirect params for the OAuth callback."""
     if config.project.cookie_auth:
         return {"successs": True}
