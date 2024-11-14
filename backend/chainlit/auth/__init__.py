@@ -4,7 +4,6 @@ from typing import Any, Dict
 
 import jwt
 from fastapi import Depends, HTTPException
-from fastapi.security import OAuth2PasswordBearer
 
 from chainlit.config import config
 from chainlit.data import get_data_layer
@@ -12,9 +11,10 @@ from chainlit.logger import logger
 from chainlit.oauth_providers import get_configured_oauth_providers
 from chainlit.user import User
 
+from .cookie import OAuth2PasswordBearerWithCookie
 from .jwt import create_jwt, decode_jwt, get_jwt_secret
 
-reuseable_oauth = OAuth2PasswordBearer(tokenUrl="/login", auto_error=False)
+reuseable_oauth = OAuth2PasswordBearerWithCookie(tokenUrl="/login", auto_error=False)
 
 
 def ensure_jwt_secret():
@@ -63,7 +63,7 @@ async def authenticate_user(token: str = Depends(reuseable_oauth)):
                 persisted_user = await data_layer.create_user(user)
                 assert persisted_user
         except Exception as e:
-            logger.exception(e)
+            logger.exception("Unable to get persisted_user from data layer: %s", e)
             return user
 
         if user and user.display_name:

@@ -9,7 +9,7 @@ import urllib.parse
 import webbrowser
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Any, Optional, Union
+from typing import Any, Dict, Literal, Optional, Union, cast
 
 import socketio
 from fastapi import (
@@ -33,6 +33,7 @@ from typing_extensions import Annotated
 from watchfiles import awatch
 
 from chainlit.auth import create_jwt, get_configuration, get_current_user
+from chainlit.auth.cookie import clear_auth_cookie, set_auth_cookie
 from chainlit.config import (
     APP_ROOT,
     BACKEND_ROOT,
@@ -363,7 +364,7 @@ async def auth(request: Request):
 
 
 @router.post("/login")
-async def login(form_data: OAuth2PasswordRequestForm = Depends()):
+async def login(response: Response, form_data: OAuth2PasswordRequestForm = Depends()):
     """
     Login a user using the password auth callback.
     """
@@ -381,12 +382,17 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="credentialssignin",
         )
+
     access_token = create_jwt(user)
     if data_layer := get_data_layer():
         try:
             await data_layer.create_user(user)
         except Exception as e:
             logger.error(f"Error creating user: {e}")
+
+    if config.project.cookie_auth:
+        set_auth_cookie(response, access_token)
+        return {"success": True}
 
     return {
         "access_token": access_token,
@@ -397,13 +403,17 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
 @router.post("/logout")
 async def logout(request: Request, response: Response):
     """Logout the user by calling the on_logout callback."""
+    if config.project.cookie_auth:
+        clear_auth_cookie(response)
+
     if config.code.on_logout:
         return await config.code.on_logout(request, response)
+
     return {"success": True}
 
 
 @router.post("/auth/header")
-async def header_auth(request: Request):
+async def header_auth(request: Request, response: Response):
     """Login a user using the header_auth_callback."""
     if not config.code.header_auth_callback:
         raise HTTPException(
@@ -426,10 +436,33 @@ async def header_auth(request: Request):
         except Exception as e:
             logger.error(f"Error creating user: {e}")
 
+    if config.project.cookie_auth:
+        set_auth_cookie(response, access_token)
+        return {"success": True}
+
     return {
         "access_token": access_token,
         "token_type": "bearer",
     }
+
+
+def _set_oauth_state_cookie(response: Response, state: str):
+    samesite = cast(
+        Literal["lax", "strict", "none"],
+        os.environ.get("CHAINLIT_COOKIE_SAMESITE", "lax"),
+    )
+
+    assert samesite in ["lax", "strict", "none"]
+
+    secure = samesite.lower() == "none"
+    response.set_cookie(
+        "oauth_state",
+        state,
+        httponly=True,
+        samesite=samesite,
+        secure=secure,
+        max_age=3 * 60,
+    )
 
 
 @router.get("/auth/oauth/{provider_id}")
@@ -461,16 +494,41 @@ async def oauth_login(provider_id: str, request: Request):
     response = RedirectResponse(
         url=f"{provider.authorize_url}?{params}",
     )
-    samesite: Any = os.environ.get("CHAINLIT_COOKIE_SAMESITE", "lax")
-    secure = samesite.lower() == "none"
-    response.set_cookie(
-        "oauth_state",
-        random,
-        httponly=True,
-        samesite=samesite,
-        secure=secure,
-        max_age=3 * 60,
+
+    _set_oauth_state_cookie(response, random)
+
+    return response
+
+
+def _get_oauth_redirect_params(access_token: str) -> Dict[str, str | bool]:
+    """Get the redirect params for the OAuth callback."""
+    if config.project.cookie_auth:
+        return {"successs": True}
+
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+    }
+
+
+def _get_oauth_redirect_response(access_token: str) -> Response:
+    """Get the redirect response for the OAuth callback."""
+    redirect_params = _get_oauth_redirect_params(access_token)
+
+    root_path = os.environ.get("CHAINLIT_ROOT_PATH", "")
+
+    response = RedirectResponse(
+        # FIXME: redirect to the right frontend base url to improve the dev environment
+        url=f"{root_path}/login/callback?{urllib.parse.urlencode(redirect_params)}",
+        status_code=302,
     )
+
+    # Oauth complete, delete state token
+    response.delete_cookie("oauth_state")
+
+    if config.project.cookie_auth:
+        set_auth_cookie(response, access_token)
+
     return response
 
 
@@ -546,21 +604,7 @@ async def oauth_callback(
         except Exception as e:
             logger.error(f"Error creating user: {e}")
 
-    params = urllib.parse.urlencode(
-        {
-            "access_token": access_token,
-            "token_type": "bearer",
-        }
-    )
-
-    root_path = os.environ.get("CHAINLIT_ROOT_PATH", "")
-
-    response = RedirectResponse(
-        # FIXME: redirect to the right frontend base url to improve the dev environment
-        url=f"{root_path}/login/callback?{params}",
-    )
-    response.delete_cookie("oauth_state")
-    return response
+    return _get_oauth_redirect_response(access_token)
 
 
 # specific route for azure ad hybrid flow
@@ -628,22 +672,7 @@ async def oauth_azure_hf_callback(
         except Exception as e:
             logger.error(f"Error creating user: {e}")
 
-    params = urllib.parse.urlencode(
-        {
-            "access_token": access_token,
-            "token_type": "bearer",
-        }
-    )
-
-    root_path = os.environ.get("CHAINLIT_ROOT_PATH", "")
-
-    response = RedirectResponse(
-        # FIXME: redirect to the right frontend base url to improve the dev environment
-        url=f"{root_path}/login/callback?{params}",
-        status_code=302,
-    )
-    response.delete_cookie("oauth_state")
-    return response
+    return _get_oauth_redirect_response(access_token)
 
 
 _language_pattern = (
