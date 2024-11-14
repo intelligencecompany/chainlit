@@ -54,27 +54,41 @@ class OAuth2PasswordBearerWithCookie(SecurityBase):
         return token
 
 
+""" Module level cookie settings. """
+_cookie_samesite = cast(
+    Literal["lax", "strict", "none"],
+    os.environ.get("CHAINLIT_COOKIE_SAMESITE", "lax"),
+)
+
+assert (
+    _cookie_samesite
+    in [
+        "lax",
+        "strict",
+        "none",
+    ]
+), "Invalid value for CHAINLIT_COOKIE_SAMESITE. Must be one of 'lax', 'strict' or 'none'."
+_cookie_secure = _cookie_samesite == "none"
+
+_auth_cookie_lifetime = 60 * 60  # 1 hour
+_state_cookie_lifetime = 3 * 60  # 3m
+_auth_cookie_name = "access_token"
+_state_cookie_name = "oauth_state"
+
+
 def set_auth_cookie(response: Response, token: str):
     """
     Helper function to set the authentication cookie with secure parameters
     """
-    samesite = cast(
-        Literal["lax", "strict", "none"],
-        os.environ.get("CHAINLIT_COOKIE_SAMESITE", "lax"),
-    )
-
-    assert samesite in ["lax", "strict", "none"]
-
-    secure = samesite.lower() == "none"
 
     response.set_cookie(
-        key="access_token",
+        key=_auth_cookie_name,
         value=token,
         httponly=True,
-        secure=secure,
-        samesite=samesite,
-        max_age=3600,  # 1 hour
-        path="/",
+        secure=_cookie_secure,
+        samesite=_cookie_samesite,
+        max_age=_auth_cookie_lifetime,
+        path="/",  # Why is path set here and not below?
     )
 
 
@@ -82,4 +96,29 @@ def clear_auth_cookie(response: Response):
     """
     Helper function to clear the authentication cookie
     """
-    response.delete_cookie(key="access_token", path="/")
+    response.delete_cookie(key=_auth_cookie_name, path="/")
+
+
+def set_oauth_state_cookie(response: Response, token: str):
+    response.set_cookie(
+        _state_cookie_name,
+        token,
+        httponly=True,
+        samesite=_cookie_samesite,
+        secure=_cookie_secure,
+        max_age=_state_cookie_lifetime,
+    )
+
+
+def validate_oauth_state_cookie(request: Request, state: str):
+    """Check the state from the oauth provider against the browser cookie."""
+
+    oauth_state = request.cookies.get(_state_cookie_name)
+
+    if oauth_state != state:
+        raise Exception("oauth state does not correspond")
+
+
+def clear_oauth_state_cookie(response: Response):
+    """Oauth complete, delete state token."""
+    response.delete_cookie(_state_cookie_name)  # Do we set path here?

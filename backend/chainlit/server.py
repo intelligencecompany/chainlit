@@ -33,7 +33,13 @@ from typing_extensions import Annotated
 from watchfiles import awatch
 
 from chainlit.auth import create_jwt, get_configuration, get_current_user
-from chainlit.auth.cookie import clear_auth_cookie, set_auth_cookie
+from chainlit.auth.cookie import (
+    clear_auth_cookie,
+    clear_oauth_state_cookie,
+    set_auth_cookie,
+    set_oauth_state_cookie,
+    validate_oauth_state_cookie,
+)
 from chainlit.config import (
     APP_ROOT,
     BACKEND_ROOT,
@@ -446,25 +452,6 @@ async def header_auth(request: Request, response: Response):
     }
 
 
-def _set_oauth_state_cookie(response: Response, state: str):
-    samesite = cast(
-        Literal["lax", "strict", "none"],
-        os.environ.get("CHAINLIT_COOKIE_SAMESITE", "lax"),
-    )
-
-    assert samesite in ["lax", "strict", "none"]
-
-    secure = samesite.lower() == "none"
-    response.set_cookie(
-        "oauth_state",
-        state,
-        httponly=True,
-        samesite=samesite,
-        secure=secure,
-        max_age=3 * 60,
-    )
-
-
 @router.get("/auth/oauth/{provider_id}")
 async def oauth_login(provider_id: str, request: Request):
     """Redirect the user to the oauth provider login page."""
@@ -495,7 +482,7 @@ async def oauth_login(provider_id: str, request: Request):
         url=f"{provider.authorize_url}?{params}",
     )
 
-    _set_oauth_state_cookie(response, random)
+    set_oauth_state_cookie(response, random)
 
     return response
 
@@ -523,12 +510,22 @@ def _get_oauth_redirect_response(access_token: str) -> Response:
         status_code=302,
     )
 
-    # Oauth complete, delete state token
-    response.delete_cookie("oauth_state")
-
     if config.project.cookie_auth:
         set_auth_cookie(response, access_token)
 
+    return response
+
+
+def _get_oauth_redirect_error(error: str) -> Response:
+    params = urllib.parse.urlencode(
+        {
+            "error": error,
+        }
+    )
+    response = RedirectResponse(
+        # FIXME: redirect to the right frontend base url to improve the dev environment
+        url=f"/login?{params}",  # Shouldn't there be {root_path} here?
+    )
     return response
 
 
@@ -556,16 +553,7 @@ async def oauth_callback(
         )
 
     if error:
-        params = urllib.parse.urlencode(
-            {
-                "error": error,
-            }
-        )
-        response = RedirectResponse(
-            # FIXME: redirect to the right frontend base url to improve the dev environment
-            url=f"/login?{params}",
-        )
-        return response
+        return _get_oauth_redirect_error(error)
 
     if not code or not state:
         raise HTTPException(
@@ -573,9 +561,11 @@ async def oauth_callback(
             detail="Missing code or state",
         )
 
-    # Check the state from the oauth provider against the browser cookie
-    oauth_state = request.cookies.get("oauth_state")
-    if oauth_state != state:
+    try:
+        validate_oauth_state_cookie(request, state)
+    except Exception as e:
+        logger.exception("Unable to validate oauth state: %1", e)
+
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Unauthorized",
@@ -604,7 +594,11 @@ async def oauth_callback(
         except Exception as e:
             logger.error(f"Error creating user: {e}")
 
-    return _get_oauth_redirect_response(access_token)
+    response = _get_oauth_redirect_response(access_token)
+
+    clear_oauth_state_cookie(response)
+
+    return response
 
 
 # specific route for azure ad hybrid flow
@@ -632,16 +626,7 @@ async def oauth_azure_hf_callback(
         )
 
     if error:
-        params = urllib.parse.urlencode(
-            {
-                "error": error,
-            }
-        )
-        response = RedirectResponse(
-            # FIXME: redirect to the right frontend base url to improve the dev environment
-            url=f"/login?{params}",
-        )
-        return response
+        return _get_oauth_redirect_error(error)
 
     if not code:
         raise HTTPException(
@@ -672,7 +657,11 @@ async def oauth_azure_hf_callback(
         except Exception as e:
             logger.error(f"Error creating user: {e}")
 
-    return _get_oauth_redirect_response(access_token)
+    response = _get_oauth_redirect_response(access_token)
+
+    clear_oauth_state_cookie(response)
+
+    return response
 
 
 _language_pattern = (
