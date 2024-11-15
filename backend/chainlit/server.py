@@ -633,6 +633,11 @@ GenericUser = Union[User, PersistedUser]
 UserParam = Annotated[GenericUser, Depends(get_current_user)]
 
 
+@router.get("/user")
+async def get_user(current_user: UserParam) -> GenericUser:
+    return current_user
+
+
 _language_pattern = (
     "^[a-zA-Z]{2,3}(-[a-zA-Z0-9]{2,3})?(-[a-zA-Z0-9]{2,8})?(-x-[a-zA-Z0-9]{1,8})?$"
 )
