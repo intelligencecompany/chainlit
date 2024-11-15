@@ -59,6 +59,7 @@ export const useAuth = (): IUseAuth => {
 
   const saveAndSetToken = (token: string | null | undefined) => {
     if (!token) {
+      // TODO: Determine whether we need this here.
       logout();
       return;
     }
@@ -78,6 +79,12 @@ export const useAuth = (): IUseAuth => {
   };
 
   useEffect(() => {
+    if (authConfig?.cookieAuth) {
+      // TODO: Do something to get user object.
+      // setUser(user as IUser)
+      return;
+    }
+
     if (!user && getToken()) {
       // Initialize the token from local storage
       saveAndSetToken(getToken());
@@ -85,7 +92,7 @@ export const useAuth = (): IUseAuth => {
     }
   }, []);
 
-  // TODO: Change this to the result of `/login` (basically).
+  // TODO: Change this based on whether our cookies are working.
   const isAuthenticated = !!accessToken;
 
   if (authConfig && !authConfig.requireLogin) {
