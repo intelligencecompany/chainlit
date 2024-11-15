@@ -13,7 +13,19 @@ import { getToken, removeToken, setToken } from 'src/utils/token';
 
 import { useApi } from './api';
 
-export const useAuth = () => {
+// Define useAuth return type
+export interface IUseAuth {
+  data: IAuthConfig | undefined;
+  user: IUser | null;
+  isAuthenticated: boolean;
+  isReady: boolean;
+  accessToken: string | undefined;
+  logout: (reload?: boolean) => Promise<void>;
+  setAccessToken: (token: string | null | undefined) => void;
+}
+
+// Define useAuth hook
+export const useAuth = (): IUseAuth => {
   const apiClient = useContext(ChainlitContext);
   const [authConfig, setAuthConfig] = useRecoilState(authState);
   const [user, setUser] = useRecoilState(userState);
@@ -78,12 +90,12 @@ export const useAuth = () => {
 
   if (authConfig && !authConfig.requireLogin) {
     return {
-      authConfig,
+      data: authConfig,
       user: null,
       isReady,
       isAuthenticated: true,
       accessToken: '',
-      logout: () => {},
+      logout: () => Promise.resolve(),
       setAccessToken: () => {}
     };
   }
