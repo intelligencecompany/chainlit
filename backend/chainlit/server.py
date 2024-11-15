@@ -629,6 +629,10 @@ async def oauth_azure_hf_callback(
     return response
 
 
+GenericUser = Union[User, PersistedUser]
+UserParam = Annotated[GenericUser, Depends(get_current_user)]
+
+
 _language_pattern = (
     "^[a-zA-Z]{2,3}(-[a-zA-Z0-9]{2,3})?(-[a-zA-Z0-9]{2,8})?(-x-[a-zA-Z0-9]{1,8})?$"
 )
@@ -654,7 +658,7 @@ async def project_translations(
 
 @router.get("/project/settings")
 async def project_settings(
-    current_user: Annotated[Union[User, PersistedUser], Depends(get_current_user)],
+    current_user: UserParam,
     language: str = Query(
         default="en-US", description="Language code", pattern=_language_pattern
     ),
@@ -705,7 +709,7 @@ async def project_settings(
 async def update_feedback(
     request: Request,
     update: UpdateFeedbackRequest,
-    current_user: Annotated[Union[User, PersistedUser], Depends(get_current_user)],
+    current_user: UserParam,
 ):
     """Update the human feedback for a particular message."""
     data_layer = get_data_layer()
@@ -724,7 +728,7 @@ async def update_feedback(
 async def delete_feedback(
     request: Request,
     payload: DeleteFeedbackRequest,
-    current_user: Annotated[Union[User, PersistedUser], Depends(get_current_user)],
+    current_user: UserParam,
 ):
     """Delete a feedback."""
 
@@ -743,7 +747,7 @@ async def delete_feedback(
 async def get_user_threads(
     request: Request,
     payload: GetThreadsRequest,
-    current_user: Annotated[Union[User, PersistedUser], Depends(get_current_user)],
+    current_user: UserParam,
 ):
     """Get the threads page by page."""
 
@@ -768,7 +772,7 @@ async def get_user_threads(
 async def get_thread(
     request: Request,
     thread_id: str,
-    current_user: Annotated[Union[User, PersistedUser], Depends(get_current_user)],
+    current_user: UserParam,
 ):
     """Get a specific thread."""
     data_layer = get_data_layer()
@@ -787,7 +791,7 @@ async def get_thread_element(
     request: Request,
     thread_id: str,
     element_id: str,
-    current_user: Annotated[Union[User, PersistedUser], Depends(get_current_user)],
+    current_user: UserParam,
 ):
     """Get a specific thread element."""
     data_layer = get_data_layer()
@@ -805,7 +809,7 @@ async def get_thread_element(
 async def delete_thread(
     request: Request,
     payload: DeleteThreadRequest,
-    current_user: Annotated[Union[User, PersistedUser], Depends(get_current_user)],
+    current_user: UserParam,
 ):
     """Delete a thread."""
 
@@ -824,7 +828,7 @@ async def delete_thread(
 
 @router.post("/project/file")
 async def upload_file(
-    current_user: Annotated[Union[User, PersistedUser], Depends(get_current_user)],
+    current_user: UserParam,
     session_id: str,
     file: UploadFile,
 ):
@@ -865,7 +869,7 @@ async def upload_file(
 async def get_file(
     file_id: str,
     session_id: str,
-    # current_user: Annotated[Union[User, PersistedUser], Depends(get_current_user)], #TODO: Causes 401 error. See https://github.com/Chainlit/chainlit/issues/1472
+    # current_user: UserParam, #TODO: Causes 401 error. See https://github.com/Chainlit/chainlit/issues/1472
 ):
     """Get a file from the session files directory."""
 
@@ -897,7 +901,7 @@ async def get_file(
 @router.get("/files/{filename:path}")
 async def serve_file(
     filename: str,
-    current_user: Annotated[Union[User, PersistedUser], Depends(get_current_user)],
+    current_user: UserParam,
 ):
     """Serve a file from the local filesystem."""
 
