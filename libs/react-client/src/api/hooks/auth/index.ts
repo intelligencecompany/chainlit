@@ -1,10 +1,9 @@
 import { useContext, useEffect } from 'react';
-import { useSetRecoilState } from 'recoil';
 import { ChainlitContext } from 'src/context';
-import { threadHistoryState } from 'src/state';
-import { getToken, removeToken } from 'src/utils/token';
+import { getToken } from 'src/utils/token';
 
 import { useAuthConfig } from './config';
+import { useSessionManagement } from './session';
 import { useUserState } from './state';
 import { useTokenManagement } from './token';
 import { IUseAuth } from './types';
@@ -12,29 +11,14 @@ import { IUseAuth } from './types';
 // Define useAuth hook
 export const useAuth = (): IUseAuth => {
   const apiClient = useContext(ChainlitContext);
-  const setThreadHistory = useSetRecoilState(threadHistoryState);
-  const { authConfig, isLoading } = useAuthConfig();
 
-  const { user, setUser, accessToken, setAccessToken } = useUserState();
+  const { authConfig, isLoading } = useAuthConfig();
+  const { logout } = useSessionManagement(apiClient);
+  const { user, accessToken } = useUserState();
 
   const { handleSetAccessToken } = useTokenManagement();
 
   const isReady = !!(!isLoading && authConfig);
-
-  const logout = async (reload = false) => {
-    await apiClient.logout();
-    setUser(null);
-
-    if (!authConfig?.cookieAuth) {
-      removeToken();
-      setAccessToken('');
-    }
-
-    setThreadHistory(undefined);
-    if (reload) {
-      window.location.reload();
-    }
-  };
 
   useEffect(() => {
     if (authConfig?.cookieAuth) {
