@@ -34,9 +34,6 @@ export const useAuth = (): IUseAuth => {
     }
   }, []);
 
-  // TODO: Change this based on whether our cookies are working.
-  const isAuthenticated = !!accessToken;
-
   if (authConfig && !authConfig.requireLogin) {
     return {
       data: authConfig,
@@ -50,10 +47,10 @@ export const useAuth = (): IUseAuth => {
   }
 
   return {
-    data: authConfig,
-    user: user,
-    isAuthenticated,
+    user,
     isReady,
+    data: authConfig,
+    isAuthenticated: !!user,
     accessToken: accessToken,
     logout: logout,
     setAccessToken: saveAndSetToken
