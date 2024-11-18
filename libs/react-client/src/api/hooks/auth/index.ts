@@ -13,16 +13,7 @@ import { getToken, removeToken, setToken } from 'src/utils/token';
 
 import { useApi } from 'src/api/hooks/api';
 
-// Define useAuth return type
-export interface IUseAuth {
-  data: IAuthConfig | undefined;
-  user: IUser | null;
-  isAuthenticated: boolean;
-  isReady: boolean;
-  accessToken: string | undefined;
-  logout: (reload?: boolean) => Promise<void>;
-  setAccessToken: (token: string | null | undefined) => void;
-}
+import { IUseAuth } from './types';
 
 // Define useAuth hook
 export const useAuth = (): IUseAuth => {
