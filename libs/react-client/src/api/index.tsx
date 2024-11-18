@@ -66,6 +66,25 @@ export class APIBase {
     }
   }
 
+  /**
+   * Low-level HTTP request handler for direct API interactions.
+   * Provides full control over HTTP methods, request configuration, and error handling.
+   *
+   * Key features:
+   * - Supports all HTTP methods (GET, POST, PUT, PATCH, DELETE)
+   * - Handles both FormData and JSON payloads
+   * - Manages authentication headers and token formatting
+   * - Custom error handling with ClientError class
+   * - Support for request cancellation via AbortSignal
+   *
+   * @param method - HTTP method to use (GET, POST, etc.)
+   * @param path - API endpoint path
+   * @param token - Optional authentication token
+   * @param data - Optional request payload (FormData or JSON-serializable data)
+   * @param signal - Optional AbortSignal for request cancellation
+   * @returns Promise<Response>
+   * @throws ClientError for HTTP errors, including 401 unauthorized
+   */
   async fetch(
     method: string,
     path: string,
