@@ -1,9 +1,9 @@
 import { useRecoilState } from 'recoil';
 import { useSetRecoilState } from 'recoil';
 import { accessTokenState, threadHistoryState, userState } from 'src/state';
-import { removeToken } from 'src/utils/token';
 
 import { useAuthConfig } from './config';
+import { removeToken } from './token';
 
 export const useSessionManagement = (apiClient: any) => {
   const [, setUser] = useRecoilState(userState);

@@ -2,11 +2,10 @@ import { useContext, useEffect } from 'react';
 import { useRecoilState } from 'recoil';
 import { useAuthConfig } from 'src/auth/config';
 import { useSessionManagement } from 'src/auth/session';
-import { useTokenManagement } from 'src/auth/token';
+import { getToken, useTokenManagement } from 'src/auth/token';
 import { IUseAuth } from 'src/auth/types';
 import { ChainlitContext } from 'src/context';
 import { accessTokenState, userState } from 'src/state';
-import { getToken } from 'src/utils/token';
 
 // Define useAuth hook
 export const useAuth = (): IUseAuth => {

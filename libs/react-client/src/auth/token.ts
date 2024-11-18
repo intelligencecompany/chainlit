@@ -3,10 +3,35 @@ import { useContext } from 'react';
 import { useRecoilState } from 'recoil';
 import { ChainlitContext } from 'src/context';
 import { accessTokenState, userState } from 'src/state';
-import { setToken } from 'src/utils/token';
 
 import { useSessionManagement } from './session';
 import { JWTPayload } from './types';
+
+const tokenKey = 'token';
+
+export function getToken() {
+  try {
+    return localStorage.getItem(tokenKey);
+  } catch (e) {
+    return;
+  }
+}
+
+export function setToken(token: string) {
+  try {
+    return localStorage.setItem(tokenKey, token);
+  } catch (e) {
+    return;
+  }
+}
+
+export function removeToken() {
+  try {
+    return localStorage.removeItem(tokenKey);
+  } catch (e) {
+    return;
+  }
+}
 
 export const useTokenManagement = () => {
   const [, setUser] = useRecoilState(userState);

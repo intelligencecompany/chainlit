@@ -1,5 +1,5 @@
+import { removeToken } from 'src/auth/token';
 import { IThread } from 'src/types';
-import { removeToken } from 'src/utils/token';
 
 import { IFeedback } from 'src/types/feedback';
 
