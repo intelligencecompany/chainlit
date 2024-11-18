@@ -1,21 +1,22 @@
 import jwt_decode from 'jwt-decode';
 import { useContext, useEffect } from 'react';
-import { useRecoilState, useSetRecoilState } from 'recoil';
+import { useSetRecoilState } from 'recoil';
 import { ChainlitContext } from 'src/context';
-import { accessTokenState, threadHistoryState, userState } from 'src/state';
+import { threadHistoryState } from 'src/state';
 import { IUser } from 'src/types';
 import { getToken, removeToken, setToken } from 'src/utils/token';
 
 import { useAuthConfig } from './config';
+import { useUserState } from './state';
 import { IUseAuth } from './types';
 
 // Define useAuth hook
 export const useAuth = (): IUseAuth => {
   const apiClient = useContext(ChainlitContext);
-  const [user, setUser] = useRecoilState(userState);
-  const [accessToken, setAccessToken] = useRecoilState(accessTokenState);
   const setThreadHistory = useSetRecoilState(threadHistoryState);
   const { authConfig, isLoading } = useAuthConfig();
+
+  const { user, setUser, accessToken, setAccessToken } = useUserState();
 
   const isReady = !!(!isLoading && authConfig);
 
