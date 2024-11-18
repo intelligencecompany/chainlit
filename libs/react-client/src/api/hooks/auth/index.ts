@@ -1,10 +1,11 @@
 import { useContext, useEffect } from 'react';
+import { useRecoilState } from 'recoil';
 import { ChainlitContext } from 'src/context';
+import { accessTokenState, userState } from 'src/state';
 import { getToken } from 'src/utils/token';
 
 import { useAuthConfig } from './config';
 import { useSessionManagement } from './session';
-import { useUserState } from './state';
 import { useTokenManagement } from './token';
 import { IUseAuth } from './types';
 
@@ -14,7 +15,9 @@ export const useAuth = (): IUseAuth => {
 
   const { authConfig, isLoading } = useAuthConfig();
   const { logout } = useSessionManagement(apiClient);
-  const { user, accessToken } = useUserState();
+
+  const [user] = useRecoilState(userState);
+  const [accessToken] = useRecoilState(accessTokenState);
 
   const { handleSetAccessToken } = useTokenManagement();
 
@@ -27,9 +30,10 @@ export const useAuth = (): IUseAuth => {
       return;
     }
 
-    if (!!user && (accessToken = getToken())) {
+    const storedAccessToken = getToken();
+    if (!!user && storedAccessToken) {
       // Initialize the token from local storage
-      handleSetAccessToken(accessToken);
+      handleSetAccessToken(storedAccessToken);
       return;
     }
   }, []);
@@ -53,7 +57,7 @@ export const useAuth = (): IUseAuth => {
     isAuthenticated: !!user,
     accessToken,
     logout,
-    setAccessToken: saveAndSetToken
+    setAccessToken: handleSetAccessToken
   };
 };
 
