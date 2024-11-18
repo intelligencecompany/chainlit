@@ -1,4 +1,4 @@
-import { removeToken } from 'src/auth/token';
+import { ensureTokenPrefix, removeToken } from 'src/auth/token';
 import { IThread } from 'src/types';
 
 import { IFeedback } from 'src/types/feedback';
@@ -57,15 +57,6 @@ export class APIBase {
     }
   }
 
-  checkToken(token: string) {
-    const prefix = 'Bearer ';
-    if (token.startsWith(prefix)) {
-      return token;
-    } else {
-      return prefix + token;
-    }
-  }
-
   /**
    * Low-level HTTP request handler for direct API interactions.
    * Provides full control over HTTP methods, request configuration, and error handling.
@@ -94,7 +85,7 @@ export class APIBase {
   ): Promise<Response> {
     try {
       const headers: { Authorization?: string; 'Content-Type'?: string } = {};
-      if (token) headers['Authorization'] = this.checkToken(token); // Assuming token is a bearer token
+      if (token) headers['Authorization'] = ensureTokenPrefix(token); // Assuming token is a bearer token
 
       let body;
 
@@ -231,7 +222,7 @@ export class ChainlitAPI extends APIBase {
       );
 
       if (token) {
-        xhr.setRequestHeader('Authorization', this.checkToken(token));
+        xhr.setRequestHeader('Authorization', ensureTokenPrefix(token));
       }
 
       // Track the progress of the upload

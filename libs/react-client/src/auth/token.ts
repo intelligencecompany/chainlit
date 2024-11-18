@@ -9,7 +9,7 @@ import { JWTPayload } from './types';
 
 const tokenKey = 'token';
 
-export function getToken() {
+export function getToken(): string | null | undefined {
   try {
     return localStorage.getItem(tokenKey);
   } catch (e) {
@@ -17,7 +17,7 @@ export function getToken() {
   }
 }
 
-export function setToken(token: string) {
+export function setToken(token: string): void {
   try {
     return localStorage.setItem(tokenKey, token);
   } catch (e) {
@@ -25,11 +25,20 @@ export function setToken(token: string) {
   }
 }
 
-export function removeToken() {
+export function removeToken(): void {
   try {
     return localStorage.removeItem(tokenKey);
   } catch (e) {
     return;
+  }
+}
+
+export function ensureTokenPrefix(token: string): string {
+  const prefix = 'Bearer ';
+  if (token.startsWith(prefix)) {
+    return token;
+  } else {
+    return prefix + token;
   }
 }
 
