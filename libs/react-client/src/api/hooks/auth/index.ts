@@ -1,13 +1,12 @@
-import jwt_decode from 'jwt-decode';
 import { useContext, useEffect } from 'react';
 import { useSetRecoilState } from 'recoil';
 import { ChainlitContext } from 'src/context';
 import { threadHistoryState } from 'src/state';
-import { IUser } from 'src/types';
-import { getToken, removeToken, setToken } from 'src/utils/token';
+import { getToken, removeToken } from 'src/utils/token';
 
 import { useAuthConfig } from './config';
 import { useUserState } from './state';
+import { useTokenManagement } from './token';
 import { IUseAuth } from './types';
 
 // Define useAuth hook
@@ -17,6 +16,8 @@ export const useAuth = (): IUseAuth => {
   const { authConfig, isLoading } = useAuthConfig();
 
   const { user, setUser, accessToken, setAccessToken } = useUserState();
+
+  const { handleSetAccessToken } = useTokenManagement();
 
   const isReady = !!(!isLoading && authConfig);
 
@@ -35,27 +36,6 @@ export const useAuth = (): IUseAuth => {
     }
   };
 
-  const saveAndSetToken = (token: string | null | undefined) => {
-    if (!token) {
-      // TODO: Determine whether we need this here.
-      logout();
-      return;
-    }
-    try {
-      const { exp, ...User } = jwt_decode(token) as any;
-      setToken(token);
-      setAccessToken(`Bearer ${token}`);
-      setUser(User as IUser);
-    } catch (e) {
-      console.error(
-        'Invalid token, clearing token from local storage',
-        'error:',
-        e
-      );
-      logout();
-    }
-  };
-
   useEffect(() => {
     if (authConfig?.cookieAuth) {
       // TODO: Do something to get user object.
@@ -65,7 +45,7 @@ export const useAuth = (): IUseAuth => {
 
     if (!user && getToken()) {
       // Initialize the token from local storage
-      saveAndSetToken(getToken());
+      handleSetAccessToken(getToken());
       return;
     }
   }, []);
