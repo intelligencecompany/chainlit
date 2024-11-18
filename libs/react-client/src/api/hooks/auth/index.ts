@@ -11,7 +11,7 @@ import {
 import { IAuthConfig, IUser } from 'src/types';
 import { getToken, removeToken, setToken } from 'src/utils/token';
 
-import { useApi } from './api';
+import { useApi } from 'src/api/hooks/api';
 
 // Define useAuth return type
 export interface IUseAuth {
