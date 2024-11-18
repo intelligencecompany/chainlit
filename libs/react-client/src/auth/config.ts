@@ -17,9 +17,13 @@ export const useAuthConfig = () => {
     }
   }, [authConfigData, setAuthConfig]);
 
+  // Secure default: only set false if explicitly defined.
+  const cookieAuth: boolean = authConfig?.cookieAuth !== false;
+
   return {
     authConfig,
     isLoading,
-    setAuthConfig
+    setAuthConfig,
+    cookieAuth
   };
 };

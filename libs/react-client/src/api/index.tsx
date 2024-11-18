@@ -1,5 +1,5 @@
 import { ensureTokenPrefix, removeToken } from 'src/auth/token';
-import { IThread } from 'src/types';
+import { IThread, IUser } from 'src/types';
 
 import { IFeedback } from 'src/types/feedback';
 
@@ -156,6 +156,11 @@ export class ChainlitAPI extends APIBase {
 
   async passwordAuth(data: FormData) {
     const res = await this.post(`/login`, data);
+    return res.json();
+  }
+
+  async getUser(accessToken?: string): Promise<IUser> {
+    const res = await this.get(`/user`, accessToken);
     return res.json();
   }
 

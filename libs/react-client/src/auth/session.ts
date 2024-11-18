@@ -1,11 +1,13 @@
-import { useRecoilState } from 'recoil';
-import { useSetRecoilState } from 'recoil';
+import { useContext } from 'react';
+import { useRecoilState, useSetRecoilState } from 'recoil';
+import { ChainlitContext } from 'src/context';
 import { accessTokenState, threadHistoryState, userState } from 'src/state';
 
 import { useAuthConfig } from './config';
 import { removeToken } from './token';
 
-export const useSessionManagement = (apiClient: any) => {
+export const useSessionManagement = () => {
+  const apiClient = useContext(ChainlitContext);
   const [, setUser] = useRecoilState(userState);
   const [, setAccessToken] = useRecoilState(accessTokenState);
 

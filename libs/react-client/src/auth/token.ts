@@ -1,7 +1,5 @@
 import jwt_decode from 'jwt-decode';
-import { useContext } from 'react';
 import { useRecoilState } from 'recoil';
-import { ChainlitContext } from 'src/context';
 import { accessTokenState, userState } from 'src/state';
 
 import { useSessionManagement } from './session';
@@ -46,7 +44,7 @@ export const useTokenManagement = () => {
   const [, setUser] = useRecoilState(userState);
   const [, setAccessToken] = useRecoilState(accessTokenState);
 
-  const { logout } = useSessionManagement(useContext(ChainlitContext));
+  const { logout } = useSessionManagement();
 
   const processToken = (token: string): void => {
     try {
