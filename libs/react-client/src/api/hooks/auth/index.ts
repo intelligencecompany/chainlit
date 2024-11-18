@@ -27,14 +27,14 @@ export const useAuth = (): IUseAuth => {
       return;
     }
 
-    if (!user && getToken()) {
+    if (!!user && getToken()) {
       // Initialize the token from local storage
       handleSetAccessToken(getToken());
       return;
     }
   }, []);
 
-  if (authConfig && !authConfig.requireLogin) {
+  if (!authConfig?.requireLogin) {
     return {
       data: authConfig,
       user: null,
