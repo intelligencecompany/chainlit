@@ -2,34 +2,20 @@ import jwt_decode from 'jwt-decode';
 import { useContext, useEffect } from 'react';
 import { useRecoilState, useSetRecoilState } from 'recoil';
 import { ChainlitContext } from 'src/context';
-import {
-  accessTokenState,
-  authState,
-  threadHistoryState,
-  userState
-} from 'src/state';
-import { IAuthConfig, IUser } from 'src/types';
+import { accessTokenState, threadHistoryState, userState } from 'src/state';
+import { IUser } from 'src/types';
 import { getToken, removeToken, setToken } from 'src/utils/token';
 
-import { useApi } from 'src/api/hooks/api';
-
+import { useAuthConfig } from './config';
 import { IUseAuth } from './types';
 
 // Define useAuth hook
 export const useAuth = (): IUseAuth => {
   const apiClient = useContext(ChainlitContext);
-  const [authConfig, setAuthConfig] = useRecoilState(authState);
   const [user, setUser] = useRecoilState(userState);
-  const { data, isLoading } = useApi<IAuthConfig>(
-    authConfig ? null : '/auth/config'
-  );
   const [accessToken, setAccessToken] = useRecoilState(accessTokenState);
   const setThreadHistory = useSetRecoilState(threadHistoryState);
-
-  useEffect(() => {
-    if (!data) return;
-    setAuthConfig(data);
-  }, [data, setAuthConfig]);
+  const { authConfig, isLoading } = useAuthConfig();
 
   const isReady = !!(!isLoading && authConfig);
 
