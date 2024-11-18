@@ -94,3 +94,6 @@ export const useAuth = (): IUseAuth => {
     setAccessToken: saveAndSetToken
   };
 };
+
+// Re-export types and main hook
+export type { IUseAuth };
