@@ -27,9 +27,9 @@ export const useAuth = (): IUseAuth => {
       return;
     }
 
-    if (!!user && getToken()) {
+    if (!!user && (accessToken = getToken())) {
       // Initialize the token from local storage
-      handleSetAccessToken(getToken());
+      handleSetAccessToken(accessToken);
       return;
     }
   }, []);
@@ -49,8 +49,8 @@ export const useAuth = (): IUseAuth => {
   return {
     data: authConfig,
     user,
-    isAuthenticated: !!user,
     isReady,
+    isAuthenticated: !!user,
     accessToken,
     logout,
     setAccessToken: saveAndSetToken
