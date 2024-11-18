@@ -47,12 +47,12 @@ export const useAuth = (): IUseAuth => {
   }
 
   return {
-    user,
-    isReady,
     data: authConfig,
+    user,
     isAuthenticated: !!user,
-    accessToken: accessToken,
-    logout: logout,
+    isReady,
+    accessToken,
+    logout,
     setAccessToken: saveAndSetToken
   };
 };
