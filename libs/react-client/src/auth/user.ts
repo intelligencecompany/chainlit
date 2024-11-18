@@ -22,7 +22,7 @@ export const useUser = () => {
 
   // Cookie-based auth; use API to set user.
   const setUserFromAPI = async () => {
-    // Get user from cookie, return true when succesful
+    // Get user from cookie, return true when successful
     try {
       const apiUser = await apiClient.getUser();
       if (apiUser) {
@@ -44,7 +44,7 @@ export const useUser = () => {
     setUserFromAPI();
   };
 
-  // Attempt to initialise user on app start.
+  // Attempt to initialize user on app start.
   useEffect(initUser, [cookieAuth]);
 
   return {

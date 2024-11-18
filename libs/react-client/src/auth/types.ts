@@ -10,11 +10,13 @@ export interface AuthState {
   isAuthenticated: boolean;
   isReady: boolean;
   accessToken: string | undefined;
+  cookieAuth: boolean;
 }
 
 export interface AuthActions {
   logout: (reload?: boolean) => Promise<void>;
   setAccessToken: (token: string | null | undefined) => void;
+  setUserFromAPI: () => Promise<void>;
 }
 
 export type IUseAuth = AuthState & AuthActions;

@@ -7,18 +7,19 @@ import { useQuery } from 'hooks/query';
 
 export default function AuthCallback() {
   const query = useQuery();
-  const { authConfig, user, setAccessToken } = useAuth();
+  const { user, cookieAuth, setAccessToken, setUserFromAPI } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (authConfig && !authConfig.cookieAuth) {
-      // Legacy token auth
+    if (!cookieAuth) {
+      // Legacy auth token from request query parameter
       const token = query.get('access_token');
-      setAccessToken(token);
-    } else {
-      // TODO: Do stuff to ensure user object.
+      return setAccessToken(token);
     }
-  }, [query]);
+
+    // Assuming we're authenticated (because redirected here), use cookie to get and set user.
+    setUserFromAPI();
+  }, [query, cookieAuth]);
 
   useEffect(() => {
     if (user) {

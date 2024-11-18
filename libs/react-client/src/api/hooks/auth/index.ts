@@ -7,9 +7,9 @@ import { useUser } from 'src/auth/user';
 import { accessTokenState } from 'src/state';
 
 export const useAuth = (): IUseAuth => {
-  const { authConfig, isLoading } = useAuthConfig();
+  const { authConfig, isLoading, cookieAuth } = useAuthConfig();
   const { logout } = useSessionManagement();
-  const { user } = useUser();
+  const { user, setUserFromAPI } = useUser();
   const [accessToken] = useRecoilState(accessTokenState);
 
   const { handleSetAccessToken } = useTokenManagement();
@@ -24,7 +24,9 @@ export const useAuth = (): IUseAuth => {
       isAuthenticated: true,
       accessToken: '',
       logout: () => Promise.resolve(),
-      setAccessToken: () => {}
+      setAccessToken: () => {},
+      setUserFromAPI: () => Promise.resolve(),
+      cookieAuth
     };
   }
 
@@ -35,7 +37,9 @@ export const useAuth = (): IUseAuth => {
     isAuthenticated: !!user,
     accessToken,
     logout,
-    setAccessToken: handleSetAccessToken
+    setAccessToken: handleSetAccessToken,
+    setUserFromAPI,
+    cookieAuth
   };
 };
 
