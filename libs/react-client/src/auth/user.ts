@@ -28,7 +28,7 @@ export const useUser = () => {
       if (apiUser) {
         setUser(apiUser);
       }
-    } catch (e) {
+    } catch (_) {
       return;
     }
   };

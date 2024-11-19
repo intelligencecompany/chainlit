@@ -10,7 +10,7 @@ const tokenKey = 'token';
 export function getToken(): string | null | undefined {
   try {
     return localStorage.getItem(tokenKey);
-  } catch (e) {
+  } catch (_) {
     return;
   }
 }
@@ -18,7 +18,7 @@ export function getToken(): string | null | undefined {
 export function setToken(token: string): void {
   try {
     return localStorage.setItem(tokenKey, token);
-  } catch (e) {
+  } catch (_) {
     return;
   }
 }
@@ -26,7 +26,7 @@ export function setToken(token: string): void {
 export function removeToken(): void {
   try {
     return localStorage.removeItem(tokenKey);
-  } catch (e) {
+  } catch (_) {
     return;
   }
 }
