@@ -91,7 +91,7 @@ auto_tag_thread = true
 edit_message = true
 
 # Use httponly cookie for client->server authentication, required to be able to use file upload and elements.
-cookie_auth: bool = true
+cookie_auth = true
 
 # Authorize users to spontaneously upload files with messages
 [features.spontaneous_file_upload]
