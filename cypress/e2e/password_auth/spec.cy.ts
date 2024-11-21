@@ -37,13 +37,20 @@ describe('Password Auth', () => {
         beforeEach(() => {
           cy.get("input[name='email']").type('admin');
           cy.get("input[name='password']").type('admin');
+
+          cy.intercept('POST', '/login').as('login');
           cy.get("button[type='submit']").click();
         });
 
         const loggedIn = () => {
-          // Current situation:
-          // POST /login succesful, redirects to /
-          // React then redirects to /login
+          cy.wait('@login').then((interception) => {
+            // Response contains `Authorization` cookie, starting with Bearer
+            expect(interception.response.headers).to.have.property(
+              'set-cookie'
+            );
+            const cookie = interception.response.headers['set-cookie'][0];
+            expect(cookie).to.contain('access_token');
+          });
 
           cy.location('pathname').should('not.contain', '/login');
           cy.get("input[name='email']").should('not.exist');
