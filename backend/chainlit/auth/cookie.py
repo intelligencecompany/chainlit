@@ -7,6 +7,27 @@ from fastapi.security.base import SecurityBase
 from fastapi.security.utils import get_authorization_scheme_param
 from starlette.status import HTTP_401_UNAUTHORIZED
 
+""" Module level cookie settings. """
+_cookie_samesite = cast(
+    Literal["lax", "strict", "none"],
+    os.environ.get("CHAINLIT_COOKIE_SAMESITE", "lax"),
+)
+
+assert (
+    _cookie_samesite
+    in [
+        "lax",
+        "strict",
+        "none",
+    ]
+), "Invalid value for CHAINLIT_COOKIE_SAMESITE. Must be one of 'lax', 'strict' or 'none'."
+_cookie_secure = _cookie_samesite == "none"
+
+_auth_cookie_lifetime = 60 * 60  # 1 hour
+_state_cookie_lifetime = 3 * 60  # 3m
+_auth_cookie_name = "access_token"
+_state_cookie_name = "oauth_state"
+
 
 class OAuth2PasswordBearerWithCookie(SecurityBase):
     """
@@ -25,7 +46,7 @@ class OAuth2PasswordBearerWithCookie(SecurityBase):
 
     async def __call__(self, request: Request) -> Optional[str]:
         # First try to get the token from the cookie
-        token = request.cookies.get("access_token")
+        token = request.cookies.get(_auth_cookie_name)
 
         # If no cookie, try the Authorization header as fallback
         if not token:
@@ -52,28 +73,6 @@ class OAuth2PasswordBearerWithCookie(SecurityBase):
                     return None
 
         return token
-
-
-""" Module level cookie settings. """
-_cookie_samesite = cast(
-    Literal["lax", "strict", "none"],
-    os.environ.get("CHAINLIT_COOKIE_SAMESITE", "lax"),
-)
-
-assert (
-    _cookie_samesite
-    in [
-        "lax",
-        "strict",
-        "none",
-    ]
-), "Invalid value for CHAINLIT_COOKIE_SAMESITE. Must be one of 'lax', 'strict' or 'none'."
-_cookie_secure = _cookie_samesite == "none"
-
-_auth_cookie_lifetime = 60 * 60  # 1 hour
-_state_cookie_lifetime = 3 * 60  # 3m
-_auth_cookie_name = "access_token"
-_state_cookie_name = "oauth_state"
 
 
 def set_auth_cookie(response: Response, token: str):
