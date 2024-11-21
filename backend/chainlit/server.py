@@ -880,6 +880,13 @@ async def get_file(
 ):
     """Get a file from the session files directory."""
 
+    if config.project.cookie_auth != True:
+        # We cannot make this work safely without cookie auth, so disable it.
+        raise HTTPException(
+            status_code=404,
+            detail="File downloads unavailable.",
+        )
+
     from chainlit.session import WebsocketSession
 
     session = WebsocketSession.get_by_id(session_id) if session_id else None

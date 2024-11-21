@@ -2,11 +2,11 @@ import asyncio
 import json
 import time
 import uuid
-from typing import Any, Dict, Literal
+from typing import Any, Dict, Literal, Optional
 from urllib.parse import unquote
 
 from chainlit.action import Action
-from chainlit.auth import get_current_user, require_login
+from chainlit.auth import get_current_user, require_login, reuseable_oauth
 from chainlit.chat_context import chat_context
 from chainlit.config import config
 from chainlit.context import init_ws_context
@@ -17,6 +17,7 @@ from chainlit.server import sio
 from chainlit.session import WebsocketSession
 from chainlit.telemetry import trace_event
 from chainlit.types import InputAudioChunk, InputAudioChunkPayload, MessagePayload
+from chainlit.user import User
 from chainlit.user_session import user_sessions
 
 
@@ -93,8 +94,30 @@ def build_anon_user_identifier(environ):
         return str(uuid.uuid5(uuid.NAMESPACE_DNS, ip))
 
 
+async def _get_token_from_request(request) -> Optional[str]:
+    # Check if the authentication is required
+    if config.project.cookie_auth != False:
+        authorization_header = request.get("HTTP_AUTHORIZATION")
+        if authorization_header:
+            return authorization_header.split(" ")[1]
+
+        return None
+
+    return await reuseable_oauth(request)
+
+
+async def _authenticate_connection(request) -> tuple[Optional[User], Optional[str]]:
+    if token := await _get_token_from_request(request):
+        user = await get_current_user(token=token)
+
+        return user, token
+
+    return None, None
+
+
 @sio.on("connect")
 async def connect(sid, environ):
+    # TODO: Consider making this an assertion as it's an actual programming error, rather than an in-program exception.
     if (
         not config.code.on_chat_start
         and not config.code.on_message
@@ -104,18 +127,19 @@ async def connect(sid, environ):
             "You need to configure at least one of on_chat_start, on_message or on_audio_chunk callback"
         )
         return False
-    user = None
-    token = None
+
+    user = token = None
+
     login_required = require_login()
-    try:
-        # Check if the authentication is required
-        if login_required:
-            authorization_header = environ.get("HTTP_AUTHORIZATION")
-            token = authorization_header.split(" ")[1] if authorization_header else None
-            user = await get_current_user(token=token)
-    except Exception:
-        logger.info("Authentication failed")
-        return False
+    if login_required:
+        try:
+            user, token = await _authenticate_connection(environ)
+        except Exception as e:
+            logger.exception(e)
+
+        if not (user and token):
+            logger.error("Authentication failed in websocket connect")
+            raise Exception("Authentication failed")
 
     # Session scoped function to emit to the client
     def emit_fn(event, data):

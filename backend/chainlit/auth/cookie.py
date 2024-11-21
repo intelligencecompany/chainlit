@@ -50,6 +50,7 @@ class OAuth2PasswordBearerWithCookie(SecurityBase):
 
         # If no cookie, try the Authorization header as fallback
         if not token:
+            # TODO: Only bother to check if cookie auth is explicitly disabled.
             authorization = request.headers.get("Authorization")
             if authorization:
                 scheme, token = get_authorization_scheme_param(authorization)
