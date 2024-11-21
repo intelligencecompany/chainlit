@@ -371,13 +371,15 @@ async def auth(request: Request):
 
 def _get_response_dict(access_token: str) -> dict:
     """Get the response dictionary for the auth response."""
-    if config.project.cookie_auth:
-        return {"successs": True}
 
-    return {
-        "access_token": access_token,
-        "token_type": "bearer",
-    }
+    if config.project.cookie_auth == False:
+        # Legacy auth
+        return {
+            "access_token": access_token,
+            "token_type": "bearer",
+        }
+
+    return {"success": True}
 
 
 def _get_auth_response(access_token: str, redirect_to_callback: bool) -> Response:
