@@ -41,6 +41,10 @@ describe('Password Auth', () => {
         });
 
         const loggedIn = () => {
+          // Current situation:
+          // POST /login succesful, redirects to /
+          // React then redirects to /login
+
           cy.location('pathname').should('not.contain', '/login');
           cy.get("input[name='email']").should('not.exist');
           cy.get("input[name='password']").should('not.exist');
