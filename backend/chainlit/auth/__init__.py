@@ -1,15 +1,11 @@
 import os
-from datetime import datetime, timedelta
-from typing import Any, Dict
 
-import jwt
 from fastapi import Depends, HTTPException
 
 from chainlit.config import config
 from chainlit.data import get_data_layer
 from chainlit.logger import logger
 from chainlit.oauth_providers import get_configured_oauth_providers
-from chainlit.user import User
 
 from .cookie import OAuth2PasswordBearerWithCookie
 from .jwt import create_jwt, decode_jwt, get_jwt_secret
@@ -79,3 +75,6 @@ async def get_current_user(token: str = Depends(reuseable_oauth)):
         return None
 
     return await authenticate_user(token)
+
+
+__all__ = ["create_jwt", "get_current_user", "get_configuration"]

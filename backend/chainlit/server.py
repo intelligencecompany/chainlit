@@ -9,7 +9,7 @@ import urllib.parse
 import webbrowser
 from contextlib import asynccontextmanager
 from pathlib import Path
-from typing import Any, Dict, Literal, Optional, Union, cast
+from typing import Optional, Union
 
 import socketio
 from fastapi import (
