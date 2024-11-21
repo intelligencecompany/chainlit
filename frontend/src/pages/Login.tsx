@@ -38,7 +38,12 @@ export default function Login() {
 
     try {
       const json = await apiClient.passwordAuth(formData);
-      setAccessToken(json.access_token);
+
+      if (config?.cookieAuth == false) setAccessToken(json.access_token);
+
+      if (json?.success != true)
+        throw new Error('Error logging in. Please try again later.');
+
       navigate(callbackUrl);
     } catch (error: any) {
       setError(error.message);
