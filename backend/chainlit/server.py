@@ -372,7 +372,7 @@ async def auth(request: Request):
 def _get_response_dict(access_token: str) -> dict:
     """Get the response dictionary for the auth response."""
 
-    if config.project.cookie_auth == False:
+    if not config.project.cookie_auth:
         # Legacy auth
         return {
             "access_token": access_token,
@@ -880,7 +880,7 @@ async def get_file(
 ):
     """Get a file from the session files directory."""
 
-    if config.project.cookie_auth != True:
+    if not config.project.cookie_auth:
         # We cannot make this work safely without cookie auth, so disable it.
         raise HTTPException(
             status_code=404,

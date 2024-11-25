@@ -48,12 +48,13 @@ def get_configuration():
 async def authenticate_user(token: str = Depends(reuseable_oauth)):
     try:
         user = decode_jwt(token)
-
     except Exception as e:
         raise HTTPException(
             status_code=401, detail="Invalid authentication token"
         ) from e
+
     if data_layer := get_data_layer():
+        # Get or create persistent user if we've a data layer available.
         try:
             persisted_user = await data_layer.get_user(user.identifier)
             if persisted_user is None:
@@ -64,10 +65,12 @@ async def authenticate_user(token: str = Depends(reuseable_oauth)):
             return user
 
         if user and user.display_name:
+            # Copy ephemeral display_name from authenticated user to persistent user.
             persisted_user.display_name = user.display_name
+
         return persisted_user
-    else:
-        return user
+
+    return user
 
 
 async def get_current_user(token: str = Depends(reuseable_oauth)):
