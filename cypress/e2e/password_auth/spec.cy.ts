@@ -5,10 +5,20 @@ describe('Password Auth', () => {
     runTestServer();
   });
 
+  beforeEach(() => {
+    cy.intercept('GET', '/user').as('user');
+  });
+
   describe('when unauthenticated', () => {
     describe('visiting /', () => {
       beforeEach(() => {
         cy.visit('/');
+      });
+
+      it('should attempt to and not not have permission to access /user', () => {
+        cy.wait('@user').then((interception) => {
+          expect(interception.response.statusCode).to.equal(401);
+        });
       });
 
       it('should redirect to login dialog', () => {
@@ -42,30 +52,48 @@ describe('Password Auth', () => {
           cy.get("button[type='submit']").click();
         });
 
-        const loggedIn = () => {
-          cy.wait('@login').then((interception) => {
-            // Response contains `Authorization` cookie, starting with Bearer
-            expect(interception.response.headers).to.have.property(
-              'set-cookie'
-            );
-            const cookie = interception.response.headers['set-cookie'][0];
-            expect(cookie).to.contain('access_token');
+        const shouldBeLoggedIn = () => {
+          it('should have an access_token cookie in /login response', () => {
+            cy.wait('@login').then((interception) => {
+              expect(interception.response.statusCode).to.equal(200);
+
+              // Response contains `Authorization` cookie, starting with Bearer
+              expect(interception.response.headers).to.have.property(
+                'set-cookie'
+              );
+              const cookie = interception.response.headers['set-cookie'][0];
+              expect(cookie).to.contain('access_token');
+            });
           });
 
-          cy.location('pathname').should('not.contain', '/login');
-          cy.get("input[name='email']").should('not.exist');
-          cy.get("input[name='password']").should('not.exist');
+          it('should request and have access to /user', () => {
+            cy.wait('@user').then((interception) => {
+              expect(interception.response.statusCode).to.equal(200);
+            });
+          });
 
-          cy.get('.step').eq(0).should('contain', 'Hello admin');
+          it('should not be on /login', () => {
+            cy.location('pathname').should('not.contain', '/login');
+          });
+
+          it('should not contain a login form', () => {
+            cy.get("input[name='email']").should('not.exist');
+            cy.get("input[name='password']").should('not.exist');
+          });
+
+          it('should show "Hello admin"', () => {
+            cy.get('.step').eq(0).should('contain', 'Hello admin');
+          });
         };
 
-        it('should be logged in', loggedIn);
+        shouldBeLoggedIn();
 
         describe('after reloading', () => {
           beforeEach(() => {
             cy.reload();
           });
-          it('should still be logged in', loggedIn);
+
+          shouldBeLoggedIn();
         });
       });
     });
