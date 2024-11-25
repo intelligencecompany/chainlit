@@ -4,9 +4,9 @@ import time
 import uuid
 from typing import Any, Dict, Literal, Optional, Tuple, Union
 from urllib.parse import unquote
-from wsgiref.types import WSGIEnvironment
 
 from starlette.requests import cookie_parser
+from typing_extensions import TypeAlias
 
 from chainlit.action import Action
 from chainlit.auth import get_current_user, require_login
@@ -22,6 +22,8 @@ from chainlit.telemetry import trace_event
 from chainlit.types import InputAudioChunk, InputAudioChunkPayload, MessagePayload
 from chainlit.user import PersistedUser, User
 from chainlit.user_session import user_sessions
+
+WSGIEnvironment: TypeAlias = dict[str, Any]
 
 
 def restore_existing_session(sid, session_id, emit_fn, emit_call_fn):
