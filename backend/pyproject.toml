@@ -102,6 +102,7 @@ pandas-stubs = { version = "^2.2.2", python = ">=3.9" }
 [tool.mypy]
 python_version = "3.9"
 
+
 [[tool.mypy.overrides]]
 module = [
     "boto3.dynamodb.types",
@@ -116,6 +117,7 @@ module = [
     "uptrace",
     "syncer",
     "azure.storage.filedatalake",
+    "wsgiref.types"
 ]
 ignore_missing_imports = true
 
