@@ -1,54 +1,54 @@
-import { useContext, useEffect } from 'react';
+import { useEffect } from 'react';
 import { useRecoilState } from 'recoil';
-import { ChainlitContext } from 'src/context';
 import { userState } from 'src/state';
 
+import { IUser, useApi } from '..';
 import { useAuthConfig } from './config';
 import { getToken, useTokenManagement } from './token';
 
 export const useUser = () => {
-  const apiClient = useContext(ChainlitContext);
+  console.log('useUser');
+
   const [user, setUser] = useRecoilState(userState);
   const { cookieAuth } = useAuthConfig();
   const { handleSetAccessToken } = useTokenManagement();
 
-  // Legacy token auth; initialize the token from local storage
-  const setUserFromLocalStore = () => {
-    {
-      const storedAccessToken = getToken();
-      if (storedAccessToken) handleSetAccessToken(storedAccessToken);
-    }
-  };
+  const { data: userData, mutate: mutateUserData } = useApi<IUser>('/user', {
+    revalidateOnMount: false
+  });
 
-  // Cookie-based auth; use API to set user.
-  const setUserFromAPI = async () => {
-    // Get user from cookie, return true when successful
-    try {
-      const apiUser = await apiClient.getUser();
-      if (apiUser) {
-        setUser(apiUser);
+  // Attempt to get user when cookieAuth are available.
+  useEffect(() => {
+    if (!user) {
+      if (cookieAuth) {
+        console.log('cookieAuth', user, cookieAuth);
+        mutateUserData();
+        return;
       }
-    } catch (_) {
-      return;
+
+      // Not using cookie auth, callback to header tokens
+      console.log('tokenAuth', user, cookieAuth);
+      const token = getToken();
+      if (token) handleSetAccessToken(token);
     }
-  };
+  }, [user, cookieAuth]);
 
-  const initUser = () => {
-    // Already logged in
-    if (user) return;
+  // When user data is available, set the user object.
+  useEffect(() => {
+    console.log('userData effect');
 
-    // Legacy fallback
-    if (!cookieAuth) return setUserFromLocalStore();
+    if (userData) {
+      console.log('setUser', userData);
+      setUser(userData);
+    }
+  }, [userData]);
 
-    // Request user from API
-    setUserFromAPI();
-  };
-
-  // Attempt to initialize user on app start.
-  useEffect(initUser, [cookieAuth]);
+  useEffect(() => {
+    console.log('useUser effect');
+  });
 
   return {
     user,
-    setUserFromAPI
+    setUserFromAPI: mutateUserData
   };
 };

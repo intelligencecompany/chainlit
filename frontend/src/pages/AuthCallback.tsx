@@ -11,6 +11,8 @@ export default function AuthCallback() {
   const navigate = useNavigate();
 
   useEffect(() => {
+    console.log('AuthCallbackEffect');
+
     if (!cookieAuth) {
       // Legacy auth token from request query parameter
       const token = query.get('access_token');
