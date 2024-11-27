@@ -74,6 +74,7 @@ export class APIBase {
   private handleRequestError(error: any) {
     if (error instanceof ClientError) {
       if (error.status === 401 && this.on401) {
+        // TODO: Consider whether we should logout() here instead.
         removeToken();
         this.on401();
       }
