@@ -116,17 +116,19 @@ export class APIBase {
           return undefined;
         };
 
-        if (res.status === 401 && this.on401) {
-          removeToken();
-          this.on401();
-        }
         throw new ClientError(res.statusText, res.status, await getDetail());
       }
 
       return res;
     } catch (error: any) {
-      if (error instanceof ClientError && this.onError) {
-        this.onError(error);
+      if (error instanceof ClientError) {
+        if (error.status === 401 && this.on401) {
+          removeToken();
+          this.on401();
+        }
+        if (this.onError) {
+          this.onError(error);
+        }
       }
       console.error(error);
       throw error;
