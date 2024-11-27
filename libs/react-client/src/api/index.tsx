@@ -59,6 +59,31 @@ export class APIBase {
     }
   }
 
+  private async getDetailFromErrorResponse(
+    res: Response
+  ): Promise<string | undefined> {
+    try {
+      const body = await res.json();
+      return body?.detail;
+    } catch (error: any) {
+      console.error('Unable to parse error response', error);
+    }
+    return undefined;
+  }
+
+  private handleRequestError(error: any) {
+    if (error instanceof ClientError) {
+      if (error.status === 401 && this.on401) {
+        removeToken();
+        this.on401();
+      }
+      if (this.onError) {
+        this.onError(error);
+      }
+    }
+    console.error(error);
+  }
+
   /**
    * Low-level HTTP request handler for direct API interactions.
    * Provides full control over HTTP methods, request configuration, and error handling.
@@ -106,31 +131,14 @@ export class APIBase {
       });
 
       if (!res.ok) {
-        const getDetail = async (): Promise<string | undefined> => {
-          try {
-            const body = await res.json();
-            return body?.detail;
-          } catch (error: any) {
-            console.error('Unable to parse error response', error);
-          }
-          return undefined;
-        };
+        const detail = await this.getDetailFromErrorResponse(res);
 
-        throw new ClientError(res.statusText, res.status, await getDetail());
+        throw new ClientError(res.statusText, res.status, detail);
       }
 
       return res;
     } catch (error: any) {
-      if (error instanceof ClientError) {
-        if (error.status === 401 && this.on401) {
-          removeToken();
-          this.on401();
-        }
-        if (this.onError) {
-          this.onError(error);
-        }
-      }
-      console.error(error);
+      this.handleRequestError(error);
       throw error;
     }
   }
