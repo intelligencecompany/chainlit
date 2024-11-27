@@ -22,10 +22,12 @@ export interface IPagination {
 }
 
 export class ClientError extends Error {
+  status: number;
   detail?: string;
 
-  constructor(message: string, detail?: string) {
+  constructor(message: string, status: number, detail?: string) {
     super(message);
+    this.status = status;
     this.detail = detail;
   }
 
@@ -118,7 +120,7 @@ export class APIBase {
           removeToken();
           this.on401();
         }
-        throw new ClientError(res.statusText, await getDetail());
+        throw new ClientError(res.statusText, res.status, await getDetail());
       }
 
       return res;
