@@ -17,7 +17,7 @@ export const useAuth = (): IUseAuth => {
 
   const isReady = !!(!isLoading && authConfig);
 
-  if (!authConfig?.requireLogin) {
+  if (authConfig && !authConfig.requireLogin) {
     return {
       data: authConfig,
       user: null,
