@@ -13,7 +13,19 @@ export const useUser = () => {
   const { handleSetAccessToken } = useTokenManagement();
 
   const { data: userData, mutate: mutateUserData } = useApi<IUser>(
-    cookieAuth ? '/user' : null
+    cookieAuth ? '/user' : null,
+    {
+      onErrorRetry: (...args) => {
+        const [err, _, config] = args;
+
+        // Don't do automatic retry for 401 - it just means we're not logged in (yet).
+        // TODO: Consider setUser(null) if (user)
+        if (err.status === 401) return;
+
+        // Fall back to default behavior.
+        return config.onErrorRetry(...args);
+      }
+    }
   );
 
   // setUser, only once (prevents callback loops).
