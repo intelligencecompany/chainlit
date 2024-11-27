@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useRecoilState } from 'recoil';
 import { userState } from 'src/state';
 
@@ -8,7 +8,6 @@ import { getToken, useTokenManagement } from './token';
 
 export const useUser = () => {
   console.log('useUser');
-
   const [user, setUser] = useRecoilState(userState);
   const { cookieAuth, isLoading: authConfigLoading } = useAuthConfig();
   const { handleSetAccessToken } = useTokenManagement();
@@ -17,13 +16,14 @@ export const useUser = () => {
     cookieAuth ? '/user' : null
   );
 
-  // When user data is available, set the user object.
-  useEffect(() => {
-    console.log('userData effect');
+  const userDataEffectRun = useRef(false);
 
-    if (userData) {
+  useEffect(() => {
+    if (!userDataEffectRun.current && userData) {
+      console.log('userData effect');
       console.log('setUser', userData);
       setUser(userData);
+      userDataEffectRun.current = true;
     }
   }, [userData]);
 
