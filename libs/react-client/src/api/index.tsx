@@ -104,12 +104,21 @@ export class APIBase {
       });
 
       if (!res.ok) {
-        const body = await res.json();
+        const getDetail = async (): Promise<string | undefined> => {
+          try {
+            const body = await res.json();
+            return body?.detail;
+          } catch (error: any) {
+            console.error('Unable to parse error response', error);
+          }
+          return undefined;
+        };
+
         if (res.status === 401 && this.on401) {
           removeToken();
           this.on401();
         }
-        throw new ClientError(res.statusText, body.detail);
+        throw new ClientError(res.statusText, await getDetail());
       }
 
       return res;
