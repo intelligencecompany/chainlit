@@ -16,8 +16,8 @@ export const useUser = () => {
     cookieAuth ? '/user' : null
   );
 
+  // setUser, only once (prevents callback loops).
   const userDataEffectRun = useRef(false);
-
   useEffect(() => {
     if (!userDataEffectRun.current && userData) {
       console.log('userData effect');
@@ -27,15 +27,19 @@ export const useUser = () => {
     }
   }, [userData]);
 
-  // Attempt to get user when cookieAuth are available.
+
+  // Not using cookie auth, attempt to get access token from local storage.
+  const tokenAuthEffectRun = useRef(false);
   useEffect(() => {
-    if (!(user && authConfigLoading && cookieAuth)) {
-      // Not using cookie auth, attempt to get access token from local storage
+    if (!tokenAuthEffectRun.current && !(user && authConfigLoading && cookieAuth)) {
       console.log('tokenAuth', user, cookieAuth);
       const token = getToken();
-      if (token) handleSetAccessToken(token);
+      if (token) {
+        handleSetAccessToken(token);
+        tokenAuthEffectRun.current = true;
+      }
     }
-  }, [user, cookieAuth]);
+  }, [user, cookieAuth, authConfigLoading]);
 
   return {
     user,
