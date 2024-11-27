@@ -10,28 +10,12 @@ export const useUser = () => {
   console.log('useUser');
 
   const [user, setUser] = useRecoilState(userState);
-  const { cookieAuth } = useAuthConfig();
+  const { cookieAuth, isLoading: authConfigLoading } = useAuthConfig();
   const { handleSetAccessToken } = useTokenManagement();
 
-  const { data: userData, mutate: mutateUserData } = useApi<IUser>('/user', {
-    revalidateOnMount: false
-  });
-
-  // Attempt to get user when cookieAuth are available.
-  useEffect(() => {
-    if (!user) {
-      if (cookieAuth) {
-        console.log('cookieAuth', user, cookieAuth);
-        mutateUserData();
-        return;
-      }
-
-      // Not using cookie auth, callback to header tokens
-      console.log('tokenAuth', user, cookieAuth);
-      const token = getToken();
-      if (token) handleSetAccessToken(token);
-    }
-  }, [user, cookieAuth]);
+  const { data: userData, mutate: mutateUserData } = useApi<IUser>(
+    cookieAuth ? '/user' : null
+  );
 
   // When user data is available, set the user object.
   useEffect(() => {
@@ -43,9 +27,15 @@ export const useUser = () => {
     }
   }, [userData]);
 
+  // Attempt to get user when cookieAuth are available.
   useEffect(() => {
-    console.log('useUser effect');
-  });
+    if (!(user && authConfigLoading && cookieAuth)) {
+      // Not using cookie auth, attempt to get access token from local storage
+      console.log('tokenAuth', user, cookieAuth);
+      const token = getToken();
+      if (token) handleSetAccessToken(token);
+    }
+  }, [user, cookieAuth]);
 
   return {
     user,
