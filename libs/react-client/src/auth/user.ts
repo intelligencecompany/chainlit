@@ -27,11 +27,13 @@ export const useUser = () => {
     }
   }, [userData]);
 
-
   // Not using cookie auth, attempt to get access token from local storage.
   const tokenAuthEffectRun = useRef(false);
   useEffect(() => {
-    if (!tokenAuthEffectRun.current && !(user && authConfigLoading && cookieAuth)) {
+    if (
+      !tokenAuthEffectRun.current &&
+      !(user && authConfigLoading && cookieAuth)
+    ) {
       console.log('tokenAuth', user, cookieAuth);
       const token = getToken();
       if (token) {

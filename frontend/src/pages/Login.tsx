@@ -11,7 +11,13 @@ import { ChainlitContext, useAuth } from 'client-types/*';
 
 export default function Login() {
   const query = useQuery();
-  const { data: config, setAccessToken, user } = useAuth();
+  const {
+    data: config,
+    setAccessToken,
+    user,
+    cookieAuth,
+    setUserFromAPI
+  } = useAuth();
   const [error, setError] = useState('');
   const apiClient = useContext(ChainlitContext);
 
@@ -39,10 +45,17 @@ export default function Login() {
     try {
       const json = await apiClient.passwordAuth(formData);
 
-      if (config?.cookieAuth == false) setAccessToken(json.access_token);
+      if (!cookieAuth) {
+        // Handle case where access_token is in JSON reply.
+        const access_token = json.access_token;
+        if (access_token) setAccessToken(access_token);
+      }
 
       if (json?.success != true)
         throw new Error('Error logging in. Please try again later.');
+
+      // Validate login cookie and get user data.
+      setUserFromAPI();
 
       navigate(callbackUrl);
     } catch (error: any) {

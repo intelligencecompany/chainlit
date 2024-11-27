@@ -7,21 +7,25 @@ import { useQuery } from 'hooks/query';
 
 export default function AuthCallback() {
   const query = useQuery();
-  const { user, cookieAuth, setAccessToken, setUserFromAPI } = useAuth();
+  const { user, setAccessToken, cookieAuth, setUserFromAPI } = useAuth();
   const navigate = useNavigate();
 
+  // Get access token from query in cookieless oauth.
   useEffect(() => {
-    console.log('AuthCallbackEffect');
+    console.log('Query callback');
 
     if (!cookieAuth) {
-      // Legacy auth token from request query parameter
+      // Get token from query parameters for oauth login.
       const token = query.get('access_token');
-      return setAccessToken(token);
+      if (token) setAccessToken(token);
     }
+  }, [query]);
 
-    // Assuming we're authenticated (because redirected here), use cookie to get and set user.
-    setUserFromAPI();
-  }, [query, cookieAuth]);
+  // Fetch user in cookie-based oauth.
+  useEffect(() => {
+    console.log('Cookie auth callback');
+    if (!user && cookieAuth) setUserFromAPI();
+  }, [cookieAuth]);
 
   useEffect(() => {
     if (user) {
