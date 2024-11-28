@@ -5,13 +5,10 @@ describe('Password Auth', () => {
     runTestServer();
   });
 
-  beforeEach(() => {
-    cy.intercept('GET', '/user').as('user');
-  });
-
   describe('when unauthenticated', () => {
     describe('visiting /', () => {
       beforeEach(() => {
+        cy.intercept('GET', '/user').as('user');
         cy.visit('/');
       });
 
@@ -49,6 +46,7 @@ describe('Password Auth', () => {
           cy.get("input[name='password']").type('admin');
 
           cy.intercept('POST', '/login').as('login');
+          cy.intercept('GET', '/user').as('user');
           cy.get("button[type='submit']").click();
         });
 
