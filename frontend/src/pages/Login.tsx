@@ -9,6 +9,10 @@ import { useQuery } from 'hooks/query';
 
 import { ChainlitContext, useAuth } from 'client-types/*';
 
+export const LoginError = new Error(
+  'Error logging in. Please try again later.'
+);
+
 export default function Login() {
   const query = useQuery();
   const {
@@ -23,14 +27,32 @@ export default function Login() {
 
   const navigate = useNavigate();
 
-  const handleHeaderAuth = async () => {
+  const handleAuth = async (jsonPromise: Promise<any>) => {
     try {
-      const json = await apiClient.headerAuth();
-      setAccessToken(json.access_token);
-      navigate('/');
+      const json = await jsonPromise;
+      if (!cookieAuth) {
+        // Handle case where access_token is in JSON reply.
+        const access_token = json.access_token;
+        if (access_token) return setAccessToken(access_token);
+        throw LoginError;
+      }
+
+      if (json?.success != true) throw LoginError;
+
+      // Validate login cookie and get user data.
+      setUserFromAPI();
     } catch (error: any) {
       setError(error.message);
     }
+  };
+
+  const handleHeaderAuth = async () => {
+    const json = apiClient.headerAuth();
+
+    handleAuth(json);
+
+    // Why does apiClient redirect to '/' but handlePasswordLogin to callbackUrl?
+    navigate('/');
   };
 
   const handlePasswordLogin = async (
@@ -42,25 +64,10 @@ export default function Login() {
     formData.append('username', email);
     formData.append('password', password);
 
-    try {
-      const json = await apiClient.passwordAuth(formData);
+    const json = apiClient.passwordAuth(formData);
 
-      if (!cookieAuth) {
-        // Handle case where access_token is in JSON reply.
-        const access_token = json.access_token;
-        if (access_token) setAccessToken(access_token);
-      }
-
-      if (json?.success != true)
-        throw new Error('Error logging in. Please try again later.');
-
-      // Validate login cookie and get user data.
-      setUserFromAPI();
-
-      navigate(callbackUrl);
-    } catch (error: any) {
-      setError(error.message);
-    }
+    handleAuth(json);
+    navigate(callbackUrl);
   };
 
   useEffect(() => {
