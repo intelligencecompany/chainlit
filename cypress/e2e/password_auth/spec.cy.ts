@@ -35,8 +35,7 @@ describe('Password Auth', () => {
           cy.get("input[name='email']").type('user');
           cy.get("input[name='password']").type('user');
           cy.get("button[type='submit']").click();
-          cy.get('.MuiAlert-message').should('exist');
-          cy.get('ol.toast');
+          cy.get('body').should('contain', 'Unauthorized');
         });
       });
 
